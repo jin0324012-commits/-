@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>티치수업 – 교수지원학습 사이트</title>
+<style>
+  body { margin:0; font-family: Arial, sans-serif; background:#FFFBF0; color:#333; }
+  header { display:flex; justify-content:space-between; align-items:center; padding:10px 20px; background:#FFB74D; color:white; }
+  header .logo { font-weight:bold; font-size:20px; }
+  header nav button { margin-left:10px; padding:6px 12px; border:none; border-radius:5px; cursor:pointer; background:#FFF4E6; color:#FF6F61; }
+  header nav button:disabled { background:#FFDDBA; color:#AAA; cursor:not-allowed; }
+  #container { display:flex; flex-direction:column; align-items:center; padding:20px; gap:15px; }
+  #loginBox { display:none; flex-direction:column; gap:10px; background:#FFF4E6; padding:20px; border-radius:15px; box-shadow:0 4px 10px rgba(0,0,0,0.1); width:300px; }
+  #loginBox input { padding:8px; border:1px solid #FFCC80; border-radius:8px; font-size:14px; }
+  #loginBox button { background:#FF6F61; color:white; border:none; padding:10px; border-radius:8px; cursor:pointer; }
+  #loginBox button:hover { background:#FF4C3B; }
+  .message { color:red; font-size:14px; }
+  #memberSection { display:none; flex-direction:column; align-items:center; gap:10px; width:100%; max-width:800px; }
+  #subButtons { display:flex; gap:10px; margin-top:10px; }
+  #subButtons button { padding:8px 12px; border:none; border-radius:6px; cursor:pointer; background:#4FC3F7; color:white; }
+  #subButtons button:disabled { background:#A3D9F7; cursor:not-allowed; }
+  .activityMenu { display:flex; gap:10px; margin-top:10px; }
+  .activityMenu button { padding:6px 12px; border:none; border-radius:5px; cursor:pointer; background:#FFCC80; color:#333; }
+  .activityMenu button:disabled { background:#FFE0B2; color:#AAA; cursor:not-allowed; }
+  .courseButtons { display:flex; gap:10px; margin-top:10px; flex-wrap:wrap; }
+  .courseButtons button { padding:6px 12px; border:none; border-radius:5px; cursor:pointer; background:#FFE082; color:#333; }
+  #timerBox, #whiteboards, #courseStart { display:none; flex-direction:column; gap:10px; margin-top:15px; }
+  #whiteboards textarea { width:300px; height:100px; border-radius:5px; border:1px solid #CCC; padding:5px; resize:none; }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo">티치수업</div>
+  <nav>
+    <button id="loginBtn">로그인</button>
+    <button id="navLesson">교과활동</button>
+    <button id="navEval">평가활동</button>
+  </nav>
+</header>
+
+<div id="container">
+
+  <div id="loginBox">
+    <input type="text" id="username" placeholder="아이디">
+    <input type="password" id="password" placeholder="비밀번호">
+    <button id="loginSubmitBtn">로그인</button>
+    <div class="message" id="loginMsg"></div>
+  </div>
+
+  <div id="memberSection">
+    <div id="welcomeName"></div>
+    <div id="subButtons">
+      <button id="penBtn" disabled>판서</button>
+      <button id="timerBtn" disabled>타이머</button>
+    </div>
+
+    <div id="whiteboards">
+      <h3>판서 보드</h3>
+      <textarea placeholder="글자 입력"></textarea>
+      <textarea placeholder="글자 입력"></textarea>
+      <textarea placeholder="글자 입력"></textarea>
+    </div>
+
+    <div id="timerBox">
+      <input type="text" id="timerTitle" placeholder="타이머 제목">
+      <input type="number" id="timerMinutes" placeholder="시간(분)">
+      <button id="timerStartBtn">시작</button>
+      <div id="timerDisplay"></div>
+    </div>
+
+    <div class="activityMenu">
+      <button id="btn3">3학년</button>
+      <button id="btn4">4학년</button>
+    </div>
+
+    <div class="courseButtons" id="courseButtons"></div>
+    <div id="courseStart">
+      <button id="startCourseBtn">수업 시작하기</button>
+    </div>
+  </div>
+
+</div>
+
+<audio id="alarmSound">
+  <source src="https://www.soundjay.com/button/beep-07.wav" type="audio/wav">
+</audio>
+
+<script>
+  const validUser = "dkswlsdn";
+  const validPass = "park0229^^";
+  let loggedIn = false;
+
+  const courseLinks = {
+    "3": {"수학":"https://cdata2.tsherpa.co.kr/ebook/tsherpa/22/22ebook_E/TB2022TC1MM_42H/resource/include/main/index.html",
+           "사회":"https://cdata2.tsherpa.co.kr/ebook/tsherpa/22/22ebook_E/TB2022TC1SS_32K/resource/include/main/index.html?",
+           "영어":"https://cdata2.tsherpa.co.kr/ebook/tsherpa/22/22ebook_E/TB2022TC1EE_30H/resource/include/main/index.html?",
+           "음악":"https://cdata2.tsherpa.co.kr/ebook/tsherpa/22/22ebook_E/EB2022GC1Etc_01_30C/resource/include/main/index.html?"},
+    "4": {"수학":"https://cdata2.tsherpa.co.kr/ebook/tsherpa/22/22ebook_E/TB2022TC1MM_42H/resource/include/main/index.html?",
+           "사회":"https://cdata2.tsherpa.co.kr/ebook/tsherpa/22/22ebook_E/TB2022TC1SS_42K/resource/include/main/index.html?",
+           "영어":"https://cdata2.tsherpa.co.kr/ebook/tsherpa/22/22ebook_E/TB2022TC1EE_40H/resource/include/main/index.html?",
+           "음악":"https://cdata2.tsherpa.co.kr/ebook/tsherpa/22/22ebook_E/EB2022GC1Etc_01_40C/resource/include/main/index.html?"}
+  };
+
+  function showLogin() {
+    document.getElementById("loginBox").style.display = "flex";
+  }
+
+  document.getElementById("loginBtn").onclick = showLogin;
+
+  document.getElementById("loginSubmitBtn").onclick = function() {
+    const username = document.getElementById("username").value;
+    const password = document.getElementById("password").value;
+    const msg = document.getElementById("loginMsg");
+
+    if(username===validUser && password===validPass){
+      loggedIn = true;
+      document.getElementById("loginBox").style.display="none";
+      document.getElementById("memberSection").style.display="flex";
+      document.getElementById("welcomeName").innerText="안진우 선생님";
+      document.getElementById("loginBtn").innerText="안진우 선생님";
+      enableFeatures();
+    } else {
+      msg.innerText="아이디 또는 비밀번호가 틀렸습니다.";
+    }
+  };
+
+  function enableFeatures() {
+    document.getElementById("navLesson").onclick = alertLogin;
+    document.getElementById("navEval").onclick = alertLogin;
+    document.getElementById("penBtn").disabled = false;
+    document.getElementById("timerBtn").disabled = false;
+  }
+
+  function alertLogin(){
+    if(!loggedIn) alert('로그인 후 이용 가능합니다.');
+  }
+
+  document.getElementById("penBtn").onclick = function() {
+    if(!loggedIn){ alert('로그인 후 이용 가능합니다.'); return; }
+    document.getElementById("whiteboards").style.display = "flex";
+  };
+
+  document.getElementById("timerBtn").onclick = function() {
+    if(!loggedIn){ alert('로그인 후 이용 가능합니다.'); return; }
+    document.getElementById("timerBox").style.display="flex";
+  };
+
+  document.getElementById("timerStartBtn").onclick = function() {
+    const minutes = parseInt(document.getElementById("timerMinutes").value);
+    const title = document.getElementById("timerTitle").value || "타이머";
+    if(isNaN(minutes) || minutes<=0){ alert("시간을 올바르게 입력하세요."); return; }
+    const display = document.getElementById("timerDisplay");
+    let seconds = minutes*60;
+    display.innerText = `${title}: ${Math.floor(seconds/60)}분 ${seconds%60}초`;
+
+    const interval = setInterval(()=>{
+      seconds--;
+      display.innerText = `${title}: ${Math.floor(seconds/60)}분 ${seconds%60}초`;
+      if(seconds<=0){
+        clearInterval(interval);
+        display.innerText=`${title} 완료!`;
+        document.getElementById("alarmSound").play();
+      }
+    },1000);
+  };
+
+  function gradeCheck(grade){
+    if(!loggedIn){ alert('로그인 후 이용 가능합니다.'); return; }
+    showGrade(grade);
+  }
+
+  document.getElementById("btn3").onclick = ()=>gradeCheck('3');
+  document.getElementById("btn4").onclick = ()=>gradeCheck('4');
+
+  function showGrade(grade) {
+    const container = document.getElementById("courseButtons");
+    container.innerHTML = "";
+    for(let subj in courseLinks[grade]){
+      const btn = document.createElement("button");
+      btn.innerText = subj;
+      btn.onclick = ()=>{
+        const startDiv = document.getElementById("courseStart");
+        startDiv.style.display="flex";
+        const startBtn = document.getElementById("startCourseBtn");
+        startBtn.onclick = ()=>{ window.open(courseLinks[grade][subj], "_blank"); };
+      };
+      container.appendChild(btn);
+    }
+  }
+</script>
+
+</body>
+</html>
